@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AutoAnalyst — Spreadsheets parsed, audited, and summarized automatically</title>
+  <title>AutoAnalyst</title>
   <meta name="description" content="Ingest a spreadsheet. Get an automatic data-sanity profile, predictive driver rankings, and plain-language executive summaries instantly.">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css?t=1724120000001">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
 <div id="scrollBar"></div>
@@ -25,7 +27,6 @@
   <div class="container">
     <nav class="site-nav">
       <div class="brand">
-        <span class="brand-dot"></span>
         AutoAnalyst
         <span class="brand-sub">/ client-side analytics</span>
       </div>
@@ -171,15 +172,15 @@
           </p>
           <div class="presets-grid" style="width: 100%; max-width: 800px;">
             <div class="preset-card" onclick="selectPreset('churn')">
-              <h4>📊 Customer Churn</h4>
+              <h4>Customer Churn</h4>
               <span>1,000 rows • 5 metrics</span>
             </div>
             <div class="preset-card" onclick="selectPreset('saas')">
-              <h4>💰 SaaS MRR Expansion</h4>
+              <h4>SaaS MRR Expansion</h4>
               <span>4,500 rows • 8 metrics</span>
             </div>
             <div class="preset-card" onclick="selectPreset('defect')">
-              <h4>⚙️ Machine Defects</h4>
+              <h4>Machine Defects</h4>
               <span>12,000 rows • 6 metrics</span>
             </div>
           </div>
@@ -213,6 +214,9 @@
   <!-- FEATURES BENTO GRID -->
   <section class="container" id="features" style="padding: 80px 0 60px;">
     <div class="section-header animate-slide">
+      <div class="bento-icon">
+        <i data-lucide="shield-check"></i>
+      </div>
       <span class="subheading">Data Engine Architecture</span>
       <h2>Core analytical features, built to scale locally.</h2>
       <p>AutoAnalyst replaces manual cleaning, correlation matrix construction, and markdown summaries with a single automated local pipeline.</p>
@@ -221,7 +225,9 @@
     <div class="bento-grid">
       <!-- Feature 1: Quality Profile -->
       <div class="bento-card bento-card-1 animate-slide">
-        <div class="bento-icon">🛡️</div>
+        <div class="bento-icon">
+          <i data-lucide="shield-check"></i>
+        </div>
         <h3>Continuous Data Quality Profiling</h3>
         <p>AutoAnalyst automatically maps missing data indices, standardizes high-variance ranges, and handles categorical variables. Before running prediction algorithms, it flags exactly what could skew your findings.</p>
         <span class="bento-footer-tag">Output Profile: Null rates, outlier flags, scale indices</span>
@@ -229,7 +235,9 @@
       
       <!-- Feature 2: Drivers -->
       <div class="bento-card bento-card-2 animate-slide">
-        <div class="bento-icon">⚡</div>
+        <div class="bento-icon">
+          <i data-lucide="zap"></i>
+        </div>
         <h3>Factor Ranking</h3>
         <p>Instead of basic correlation tables, AutoAnalyst builds supervised tree classification models to rank factors by overall metric impact.</p>
         <span class="bento-footer-tag">Model: Gradient Boosted Trees</span>
@@ -237,7 +245,9 @@
       
       <!-- Feature 3: Browser Sandboxing -->
       <div class="bento-card bento-card-3 animate-slide">
-        <div class="bento-icon">🔒</div>
+        <div class="bento-icon">
+          <i data-lucide="lock-keyhole"></i>
+        </div>
         <h3>Local Sandbox Security</h3>
         <p>All calculations run in your local browser sandbox. No telemetry packets, no data storage pools, no cloud databases. Your information remains local.</p>
         <span class="bento-footer-tag">Footprint: 100% client-side memory</span>
@@ -245,7 +255,9 @@
       
       <!-- Feature 4: Briefing Writer -->
       <div class="bento-card bento-card-4 animate-slide">
-        <div class="bento-icon">🖋️</div>
+        <div class="bento-icon">
+          <i data-lucide="file-text"></i>
+        </div>
         <h3>Structured Executive Summarization</h3>
         <p>AutoAnalyst translates complex models into human-readable briefs. It highlights target metric variances, outlines warnings, and defines recommended operational adjustments without dashboard fatigue.</p>
         <span class="bento-footer-tag">Format: High-density editorial markdown text</span>
@@ -358,15 +370,35 @@
   </section>
 </main>
 
-<footer class="container">
-  <div class="footer-inner">
-    <div>© 2026 AutoAnalyst — built by Ananjay Pampalli.</div>
-    <div class="footer-links">
-      <a href="https://github.com/Ananjay07/AutoAnalyst-BI-Data-Sanity-Platform" target="_blank" rel="noopener">GitHub</a>
-      <a href="#product">Sandbox</a>
-      <a href="#features">Features</a>
+<footer class="site-footer">
+    <div class="footer-inner">
+
+        <div class="footer-brand">
+            <div class="footer-logo">
+                AutoAnalyst
+            </div>
+            <p>
+                Automated client-side analytics for faster,
+                cleaner and more reliable business decisions.
+            </p>
+        </div>
+        <div class="footer-links">
+            <a href="#product">Sandbox</a>
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How It Works</a>
+            <a href="#about">About Us</a>
+        </div>
+        <div class="footer-action">
+            <a href="#about" class="footer-about-btn">
+                About Us
+                <span>→</span>
+            </a>
+        </div>
     </div>
-  </div>
+    <div class="footer-bottom">
+        <span>© 2026 AutoAnalyst</span>
+        <span>LOCAL-FIRST ANALYTICS</span>
+    </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
