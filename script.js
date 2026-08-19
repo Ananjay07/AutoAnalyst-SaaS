@@ -139,7 +139,7 @@ function initParticles() {
 
   let W = 0, H = 0, dpr = 1, raf = 0, last = performance.now();
 
-  const pointer = { x: 0, y: 0, active: false, inHero: false };
+  const pointer = { x: 0, y: 0, active: false };
   const nodes = [];
   const satellites = [];
   const NODE_COUNT = window.innerWidth < 768 ? 45 : 85;
@@ -171,9 +171,7 @@ function initParticles() {
     pointer.x = x;
     pointer.y = y;
     pointer.active = true;
-    const rect = hero?.getBoundingClientRect();
-    pointer.inHero = !!rect && y >= rect.top && y <= rect.bottom;
-    if (pointer.inHero && !satellites.length) {
+    if (!satellites.length) {
       for (let i = 0; i < 7; i++) {
         const a = (Math.PI * 2 * i) / 7;
         const r = 48 + (i % 3) * 20;
@@ -193,7 +191,6 @@ function initParticles() {
   window.addEventListener('pointermove', e => setPointer(e.clientX, e.clientY), { passive: true });
   window.addEventListener('pointerleave', () => {
     pointer.active = false;
-    pointer.inHero = false;
   }, { passive: true });
   window.addEventListener('resize', resize, { passive: true });
 
@@ -233,8 +230,8 @@ function initParticles() {
       }
     }
 
-    // Hero-only cursor constellation, rendered INTO the background canvas.
-    if (pointer.active && pointer.inHero) {
+    // Global cursor constellation, rendered INTO the background canvas.
+    if (pointer.active) {
       satellites.forEach((n, i) => {
         n.phase += n.speed * dt;
         const tx = pointer.x + n.ox + Math.cos(n.phase) * 7;
@@ -1693,4 +1690,7 @@ window.addEventListener('load', () => {
       }
     });
   });
+  if (typeof lucide !== "undefined") {
+    lucide.createIcons();
+}
 })();
