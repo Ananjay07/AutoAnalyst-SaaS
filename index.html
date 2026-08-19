@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoAnalyst — Spreadsheets parsed, audited, and summarized automatically</title>
+  <meta name="description" content="Ingest a spreadsheet. Get an automatic data-sanity profile, predictive driver rankings, and plain-language executive summaries instantly.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?t=1724120000001">
+</head>
+<body>
+<div id="scrollBar"></div>
+
+<!-- FULL-PAGE BACKGROUND CANVAS -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- CUSTOM CURSOR STRUCTURE -->
+<div class="custom-cursor-dot"></div>
+<div class="custom-cursor-ring"></div>
+
+<header id="siteHeader">
+  <div class="container">
+    <nav>
+      <div class="brand">
+        <span class="brand-dot"></span>
+        AutoAnalyst
+        <span class="brand-sub">/ client-side analytics</span>
+      </div>
+      <div class="nav-links">
+        <a href="#product">Sandbox</a>
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
+      </div>
+      <div class="btn-nav-wrapper">
+        <a class="btn btn-primary" href="#product" style="padding: 8px 20px; font-size: 13px;">
+          <span>Launch Sandbox</span>
+          <div class="btn-arrow-wrapper">
+            <div class="btn-arrow-inner">
+              <svg class="btn-arrow-svg" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 7H13M13 7L8 2M13 7L8 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg class="btn-arrow-svg" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 7H13M13 7L8 2M13 7L8 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- HERO SECTION -->
+  <section class="hero container">
+    <div class="hero-glow" id="heroGlow"></div>
+    <div class="animate-slide" style="animation-delay: 0.1s;">
+      <span class="subheading" style="margin-bottom: 20px;">Client-side Data Engine</span>
+      <h1>Your spreadsheets have <span>opinions</span>.<br>Let's map them.</h1>
+      <p class="lead">Upload structured data to automatically construct data-sanity profiles, rank predictive factor weights, and draft plain-text executive briefings. Safe, instant, and completely local.</p>
+    </div>
+    
+    <div class="hero-actions animate-slide" style="animation-delay: 0.2s;">
+      <a href="#product" class="btn btn-primary">
+        <span>Start Sandbox Audit</span>
+        <div class="btn-arrow-wrapper">
+          <div class="btn-arrow-inner">
+            <svg class="btn-arrow-svg" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 7H13M13 7L8 2M13 7L8 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg class="btn-arrow-svg" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 7H13M13 7L8 2M13 7L8 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </a>
+      <a href="https://github.com" target="_blank" rel="noopener" class="btn btn-secondary">
+        <span>Read Documentation</span>
+        <div class="btn-arrow-wrapper">
+          <div class="btn-arrow-inner">
+            <svg class="btn-arrow-svg" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 7H13M13 7L8 2M13 7L8 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg class="btn-arrow-svg" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 7H13M13 7L8 2M13 7L8 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </a>
+    </div>
+    
+    <div class="hero-meta animate-slide" style="animation-delay: 0.25s;">
+      Zero data footprints. Computations run locally inside browser memory.
+    </div>
+
+    <!-- LOGO MARQUEE -->
+    <div class="marquee-container animate-slide" style="animation-delay: 0.3s;">
+      <div class="marquee-track">
+        <div class="marquee-item">CSV Format <span class="marquee-item-dot"></span></div>
+        <div class="marquee-item">Excel Sheets <span class="marquee-item-dot"></span></div>
+        <div class="marquee-item">SQL Databases <span class="marquee-item-dot"></span></div>
+        <div class="marquee-item">JSON Tables <span class="marquee-item-dot"></span></div>
+        <div class="marquee-item">Parquet Vectors <span class="marquee-item-dot"></span></div>
+        <div class="marquee-item">TSV Streams <span class="marquee-item-dot"></span></div>
+        <!-- Duplicated for loop -->
+        <div class="marquee-item">CSV Format <span class="marquee-item-dot"></span></div>
+        <div class="marquee-item">Excel Sheets <span class="marquee-item-dot"></span></div>
+        <div class="marquee-item">SQL Databases <span class="marquee-item-dot"></span></div>
+        <div class="marquee-item">JSON Tables <span class="marquee-item-dot"></span></div>
+        <div class="marquee-item">Parquet Vectors <span class="marquee-item-dot"></span></div>
+        <div class="marquee-item">TSV Streams <span class="marquee-item-dot"></span></div>
+      </div>
+    </div>
+
+    <!-- MAIN PRODUCT INTERACTIVE SIMULATOR -->
+    <div class="app-mockup container animate-slide" id="product" style="animation-delay: 0.35s;">
+      <div class="mockup-chrome">
+        <div class="chrome-dots">
+          <div class="chrome-dot"></div>
+          <div class="chrome-dot"></div>
+          <div class="chrome-dot"></div>
+        </div>
+        <div class="mockup-title" id="mockupTitle">AutoAnalyst sandbox — Choose Data Source</div>
+        <div class="mockup-tabs" style="display: none;">
+          <button class="mockup-tab" onclick="switchMockupTab(0)">01 Quality Profile</button>
+          <button class="mockup-tab" onclick="switchMockupTab(1)">02 Impact Drivers</button>
+          <button class="mockup-tab" onclick="switchMockupTab(2)">03 Executive Brief</button>
+        </div>
+      </div>
+      
+      <div class="mockup-body" id="mockupBody">
+        <!-- Direct Predefined Templates Starter -->
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px 0;">
+          <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 12px;">Pre-loaded Simulation Datasets</h3>
+          <p style="color: var(--text-muted); font-size: 14px; max-width: 480px; margin: 0 auto 36px; line-height: 1.6;">
+            Select one of our standard SaaS templates below to run the local audit pipeline. Custom file upload is available in the commercial version.
+          </p>
+          <div class="presets-grid" style="width: 100%; max-width: 800px;">
+            <div class="preset-card" onclick="selectPreset('churn')">
+              <h4>📊 Customer Churn</h4>
+              <span>1,000 rows • 5 metrics</span>
+            </div>
+            <div class="preset-card" onclick="selectPreset('saas')">
+              <h4>💰 SaaS MRR Expansion</h4>
+              <span>4,500 rows • 8 metrics</span>
+            </div>
+            <div class="preset-card" onclick="selectPreset('defect')">
+              <h4>⚙️ Machine Defects</h4>
+              <span>12,000 rows • 6 metrics</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DYNAMIC RUN SUMMARY STATS STRIP -->
+  <section class="container animate-slide" style="animation-delay: 0.4s;">
+    <div class="stats-strip">
+      <div class="stat-item" data-end="71.9" data-suffix="%" data-decimals="1">
+        <b>71.9%</b>
+        <span>F1 PREDICTIVE ACCURACY</span>
+      </div>
+      <div class="stat-item" data-end="0.710" data-suffix="" data-decimals="3">
+        <b>0.710</b>
+        <span>CV CLASSIFICATION SCORE</span>
+      </div>
+      <div class="stat-item" data-end="40.5" data-suffix="%" data-decimals="1">
+        <b>40.5%</b>
+        <span>PRIMARY DRIVER WEIGHT</span>
+      </div>
+      <div class="stat-item" data-end="1000" data-suffix="" data-decimals="0">
+        <b>1,000</b>
+        <span>ROWS EVALUATED</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES BENTO GRID -->
+  <section class="container" id="features" style="padding: 80px 0 60px;">
+    <div class="section-header animate-slide">
+      <span class="subheading">Data Engine Architecture</span>
+      <h2>Core analytical features, built to scale locally.</h2>
+      <p>AutoAnalyst replaces manual cleaning, correlation matrix construction, and markdown summaries with a single automated local pipeline.</p>
+    </div>
+    
+    <div class="bento-grid">
+      <!-- Feature 1: Quality Profile -->
+      <div class="bento-card bento-card-1 animate-slide">
+        <div class="bento-icon">🛡️</div>
+        <h3>Continuous Data Quality Profiling</h3>
+        <p>AutoAnalyst automatically maps missing data indices, standardizes high-variance ranges, and handles categorical variables. Before running prediction algorithms, it flags exactly what could skew your findings.</p>
+        <span class="bento-footer-tag">Output Profile: Null rates, outlier flags, scale indices</span>
+      </div>
+      
+      <!-- Feature 2: Drivers -->
+      <div class="bento-card bento-card-2 animate-slide">
+        <div class="bento-icon">⚡</div>
+        <h3>Factor Ranking</h3>
+        <p>Instead of basic correlation tables, AutoAnalyst builds supervised tree classification models to rank factors by overall metric impact.</p>
+        <span class="bento-footer-tag">Model: Gradient Boosted Trees</span>
+      </div>
+      
+      <!-- Feature 3: Browser Sandboxing -->
+      <div class="bento-card bento-card-3 animate-slide">
+        <div class="bento-icon">🔒</div>
+        <h3>Local Sandbox Security</h3>
+        <p>All calculations run in your local browser sandbox. No telemetry packets, no data storage pools, no cloud databases. Your information remains local.</p>
+        <span class="bento-footer-tag">Footprint: 100% client-side memory</span>
+      </div>
+      
+      <!-- Feature 4: Briefing Writer -->
+      <div class="bento-card bento-card-4 animate-slide">
+        <div class="bento-icon">🖋️</div>
+        <h3>Structured Executive Summarization</h3>
+        <p>AutoAnalyst translates complex models into human-readable briefs. It highlights target metric variances, outlines warnings, and defines recommended operational adjustments without dashboard fatigue.</p>
+        <span class="bento-footer-tag">Format: High-density editorial markdown text</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESS FLOW -->
+  <section class="container" id="how-it-works" style="padding: 80px 0;">
+    <div class="section-header animate-slide">
+      <span class="subheading">Pipeline stages</span>
+      <h2>From file drop to briefing delivery.</h2>
+    </div>
+    <div class="process-grid">
+      <div class="process-step animate-slide">
+        <div class="process-num">01</div>
+        <h3>Parse & Profile</h3>
+        <p>Ingest raw files locally, run data type parsing, calculate fill distributions, and resolve missing fields automatically.</p>
+      </div>
+      <div class="process-step animate-slide">
+        <div class="process-num">02</div>
+        <h3>Train & Rank</h3>
+        <p>Split datasets into training slices, optimize gradient boosted trees, and map feature importances to target variables.</p>
+      </div>
+      <div class="process-step animate-slide">
+        <div class="process-num">03</div>
+        <h3>Synthesize Brief</h3>
+        <p>Draft natural language takeaways, compile correlation matrix heatmaps, and output actionable steps for team stakeholders.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE RADAR NODES & HONEST DISCLAIMER -->
+  <section class="container radar-story-section" style="padding-bottom: 80px;">
+    <div class="radar-widget-row">
+      
+      <!-- Left Bento Box: Radar Clocks -->
+      <div class="radar-widget">
+        <div class="radar-visualization">
+          <div class="radar-screen">
+            <div class="radar-sweep"></div>
+            <div class="radar-ring-1"></div>
+            <div class="radar-ring-2"></div>
+            <div class="radar-blip blip-nyc"></div>
+            <div class="radar-blip blip-lon"></div>
+            <div class="radar-blip blip-sin"></div>
+          </div>
+        </div>
+        
+        <div class="clocks-container">
+          <div class="clock-item">
+            <div class="clock-info">
+              <span class="clock-node">NYC Node</span>
+              <span class="clock-latency">14ms ping (optimum)</span>
+            </div>
+            <span class="clock-time" id="timeNyc">00:00:00</span>
+          </div>
+          <div class="clock-item">
+            <div class="clock-info">
+              <span class="clock-node">London Node</span>
+              <span class="clock-latency">28ms ping (stable)</span>
+            </div>
+            <span class="clock-time" id="timeLon">00:00:00</span>
+          </div>
+          <div class="clock-item">
+            <div class="clock-info">
+              <span class="clock-node">Singapore Node</span>
+              <span class="clock-latency">75ms ping (active)</span>
+            </div>
+            <span class="clock-time" id="timeSin">00:00:00</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Bento Box: Independent Prototype Disclaimer -->
+      <div class="honest-section" style="height: 100%; display: flex; align-items: flex-start; justify-content: center; flex-direction: column; margin: 0;">
+        <div style="display: flex; gap: 20px; align-items: flex-start;">
+          <div class="honest-icon-box">✓</div>
+          <div>
+            <h3>Independent prototype disclaimer</h3>
+            <p style="margin: 0; line-height: 1.65; color: var(--text-muted); font-size: 14.5px;">
+              AutoAnalyst is a self-funded, local-first data utility. There are no sales pipelines, marketing logos, or tracking frameworks. It is designed to demonstrate fast, client-side, structured auditing directly in browser environments. If you find value in the utility, you can inspect the full source in the repository.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- CTA BANNER -->
+  <section class="container animate-slide">
+    <div class="cta-banner">
+      <h2>Inspect the source repository.</h2>
+      <p>Read the frontend code structure, parser integrations, and gradient-boosting configurations.</p>
+      <a href="https://github.com" target="_blank" rel="noopener" class="btn btn-primary">
+        <span>View GitHub Repository</span>
+        <div class="btn-arrow-wrapper">
+          <div class="btn-arrow-inner">
+            <svg class="btn-arrow-svg" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 7H13M13 7L8 2M13 7L8 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg class="btn-arrow-svg" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 7H13M13 7L8 2M13 7L8 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
+</main>
+
+<footer class="container">
+  <div class="footer-inner">
+    <div>© 2026 AutoAnalyst — built by Ananjay Pampalli.</div>
+    <div class="footer-links">
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      <a href="#product">Sandbox</a>
+      <a href="#features">Features</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="script.js?t=1724140000001" defer></script>
+
+</body>
+</html>
