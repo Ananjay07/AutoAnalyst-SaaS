@@ -31,7 +31,7 @@
 }
 
 html {
-  scroll-behavior: auto;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -281,6 +281,11 @@ nav {
 }
 
 /* --- HERO SECTION --- */
+@keyframes heroPulse {
+  0%, 100% { opacity: 0.7; transform: translateX(-50%) scale(1); }
+  50%       { opacity: 1;   transform: translateX(-50%) scale(1.12); }
+}
+
 .hero {
   padding: 140px 0 90px;
   text-align: center;
@@ -296,17 +301,14 @@ nav {
   position: absolute;
   top: -8%;
   left: 50%;
-  transform: translate3d(calc(-50% + var(--mouse-x, 0px)), var(--mouse-y, 0px), 0);
+  transform: translateX(-50%);
   width: 900px;
   height: 480px;
   background: radial-gradient(ellipse, rgba(255,46,99,0.18) 0%, rgba(255,46,99,0.04) 45%, transparent 70%);
   pointer-events: none;
   z-index: 0;
   filter: blur(55px);
-  /* GSAP owns the scroll transform; mouse movement is composed through
-     CSS variables so it cannot overwrite GSAP's transform. */
-  animation: none;
-  will-change: transform, opacity;
+  animation: heroPulse 6s ease-in-out infinite;
 }
 
 .hero h1 {
@@ -584,8 +586,8 @@ nav {
 }
 
 @keyframes tabFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .view-card {
@@ -1267,10 +1269,7 @@ footer {
 }
 
 .animate-slide {
-  opacity: 0;
-  animation: slideInUp 0.9s cubic-bezier(0.38, 0.005, 0.215, 1) forwards;
-  position: relative;
-  z-index: 5;
+  animation: none !important;
 }
 
 /* --- LUMINOUS LABS STYLE SCROLL BLUR REVEAL --- */
@@ -1518,50 +1517,292 @@ html.lenis body {
 }
 
 
-/* --- SCROLL MOTION STABILITY ----------------------------------------------
-   GSAP owns transform/opacity for these elements during scroll. Keeping them
-   on their own compositor layer helps prevent transient repaint flashes.
+/* ==========================================================================
+   DEFINITIVE HERO VISIBILITY FIX
+   The hero is normal document flow directly after the header.
+   No generic reveal class may hide it on first paint.
+   ========================================================================== */
+header#siteHeader {
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+main {
+  position: relative !important;
+  z-index: 1 !important;
+  display: block !important;
+}
+
+.hero {
+  position: relative !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  min-height: calc(100vh - 72px) !important;
+  height: auto !important;
+  padding: 92px 0 80px !important;
+  margin: 0 auto !important;
+  transform: none !important;
+}
+
+.hero > .animate-slide,
+.hero > .hero-actions,
+.hero > .hero-meta,
+.hero > .hero-product-preview {
+  visibility: visible !important;
+}
+
+/* Critical: the previous global rule left .animate-slide at opacity:0
+   after disabling its CSS animation. Restore it to visible. */
+.hero .animate-slide {
+  opacity: 1 !important;
+  animation: none !important;
+  transform: none;
+}
+
+/* Do not let the hero product preview start as an invisible block.
+   GSAP can animate it later without hiding the actual hero. */
+#heroProductPreview {
+  visibility: visible !important;
+}
+
+/* Background canvas is never part of layout and never covers content. */
+#bgCanvas {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    min-height: auto !important;
+    padding: 54px 0 60px !important;
+  }
+}
+
+
+/* ==========================================================================
+   FINAL HERO + BACKGROUND LAYER
+   ========================================================================== */
+#bgCanvas {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  display: block !important;
+}
+
+header, main, footer {
+  position: relative;
+  z-index: 2;
+}
+
+.hero {
+  position: relative !important;
+  z-index: 2 !important;
+  min-height: calc(100vh - 72px) !important;
+  height: auto !important;
+  padding: 76px 0 90px !important;
+}
+
+.hero .animate-slide {
+  opacity: 1 !important;
+  visibility: visible !important;
+  animation: none !important;
+}
+
+.hero-product-preview {
+  position: relative !important;
+  z-index: 3 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: min(920px, calc(100% - 40px)) !important;
+  margin: 52px auto 26px !important;
+  text-align: left;
+  border: 1px solid rgba(255,46,99,.20);
+  border-radius: 18px;
+  overflow: hidden;
+  background: linear-gradient(135deg,rgba(255,46,99,.045),transparent 38%),rgba(8,7,10,.92);
+  box-shadow: 0 32px 90px rgba(0,0,0,.58),0 0 70px rgba(255,46,99,.055),inset 0 1px 0 rgba(255,255,255,.035);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.hero-preview-chrome {
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,.012);
+  font-family: 'JetBrains Mono',monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+.hero-preview-title{display:flex;align-items:center;gap:8px;color:var(--text-muted);white-space:nowrap}
+.hero-live-dot{width:6px;height:6px;flex:0 0 auto;border-radius:50%;background:var(--primary);box-shadow:0 0 12px rgba(255,46,99,.7);animation:heroLivePulse 1.8s ease-in-out infinite}
+.hero-preview-file{justify-self:center;color:var(--text-dim);white-space:nowrap}
+.hero-preview-status{justify-self:end;color:var(--primary);white-space:nowrap}
+@keyframes heroLivePulse{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+
+.hero-preview-body{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:250px}
+.hero-preview-sidebar{padding:24px 18px;border-right:1px solid var(--border);background:rgba(0,0,0,.16)}
+.hero-sidebar-label,.hero-preview-kicker{font-family:'JetBrains Mono',monospace;color:var(--text-dim);font-size:9px;letter-spacing:.12em;text-transform:uppercase}
+.hero-sidebar-label{margin-bottom:18px}
+.hero-pipeline-step{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:9px;padding:11px 8px;margin-bottom:6px;border-radius:9px;color:var(--text-dim)}
+.hero-pipeline-step>span{font-family:'JetBrains Mono',monospace;font-size:9px}
+.hero-pipeline-step strong{display:block;color:var(--text-muted);font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;line-height:1.25}
+.hero-pipeline-step small{display:block;margin-top:3px;color:var(--text-dim);font-size:9px;line-height:1.25}
+.hero-pipeline-step b{font-family:'JetBrains Mono',monospace;color:var(--text-dim);font-size:10px}
+.hero-pipeline-step.is-done b{color:var(--primary)}
+.hero-pipeline-step.is-active{background:rgba(255,46,99,.075);box-shadow:inset 2px 0 0 var(--primary)}
+.hero-pipeline-step.is-active strong,.hero-pipeline-step.is-active b{color:var(--text)}
+
+.hero-preview-main{min-width:0;padding:24px 28px 20px}
+.hero-preview-heading{display:flex;align-items:center;justify-content:space-between;gap:24px}
+.hero-preview-heading strong{display:block;margin-top:5px;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:32px;line-height:1;letter-spacing:-.05em}
+.hero-preview-heading strong span{color:var(--primary);font-size:17px;letter-spacing:0}
+.hero-score-ring{width:48px;height:48px;flex:0 0 auto;display:grid;place-items:center;border:1px solid rgba(255,46,99,.32);border-radius:50%;background:rgba(255,46,99,.045);box-shadow:inset 0 0 20px rgba(255,46,99,.06)}
+.hero-score-ring span{color:var(--primary);font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em}
+.hero-mini-chart{height:82px;display:flex;align-items:flex-end;gap:7px;margin:24px 0 18px;padding-bottom:1px;border-bottom:1px solid var(--border)}
+.hero-mini-chart span{flex:1 1 0;min-width:5px;border-radius:3px 3px 0 0;background:linear-gradient(to top,rgba(255,46,99,.15),rgba(255,46,99,.72));transform-origin:bottom;animation:heroBarBreath 3.5s ease-in-out infinite}
+.hero-mini-chart span:nth-child(2n){animation-delay:-.7s}
+.hero-mini-chart span:nth-child(3n){animation-delay:-1.4s}
+@keyframes heroBarBreath{0%,100%{transform:scaleY(.92);opacity:.72}50%{transform:scaleY(1);opacity:1}}
+
+.hero-preview-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.hero-preview-metrics>div{min-width:0;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:rgba(255,255,255,.012)}
+.hero-preview-metrics span{display:block;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:8.5px;line-height:1.3}
+.hero-preview-metrics strong{display:block;margin-top:5px;color:var(--text-muted);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;line-height:1.2}
+.hero-preview-metrics .hero-ready{color:var(--primary)}
+.hero-preview-console{display:flex;align-items:center;gap:8px;min-width:0;margin-top:15px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:9px;line-height:1.4;white-space:nowrap;overflow:hidden}
+.hero-preview-console .console-prompt{flex:0 0 auto;color:var(--primary);font-size:14px}
+#heroConsoleText{min-width:0;overflow:hidden;text-overflow:ellipsis;transition:opacity .16s ease}
+.hero-preview-console i{width:5px;height:11px;flex:0 0 auto;background:var(--primary);opacity:.7;animation:heroCursorBlink 1s steps(1) infinite}
+@keyframes heroCursorBlink{50%{opacity:0}}
+
+@media(max-width:768px){
+  .hero{min-height:auto!important;padding:52px 0 60px!important}
+  .hero-product-preview{width:calc(100% - 24px)!important;margin-top:40px!important;border-radius:14px}
+  .hero-preview-chrome{grid-template-columns:1fr auto;min-height:42px;padding:0 13px}
+  .hero-preview-file{display:none}
+  .hero-preview-body{grid-template-columns:1fr;min-height:0}
+  .hero-preview-sidebar{display:none}
+  .hero-preview-main{padding:20px 16px 16px}
+  .hero-preview-heading strong{font-size:28px}
+  .hero-preview-metrics{gap:7px}
+  .hero-preview-metrics>div{padding:9px}
+  .hero-preview-metrics span{font-size:7.5px}
+  .hero-preview-metrics strong{font-size:11px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  #bgCanvas{display:none!important}
+  .hero-live-dot,.hero-mini-chart span,.hero-preview-console i{animation:none}
+}
+
+
+/* ==========================================================================
+   SECTION HEADER VISIBILITY / SCROLL STABILITY
+   ========================================================================== */
+.section-header,
+.section-header .subheading,
+.section-header h2,
+.section-header p {
+  visibility: visible !important;
+}
+
+/* Never leave a section header at opacity:0 because of a cancelled/late
+   animation. GSAP may animate it from here, but its resting state is visible. */
+.section-header {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* Explicit stable resting states for the three core product sections. */
+#sandbox .section-header,
+#features .section-header,
+#how-it-works .section-header {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+
+/* Do not let animation classes or generic section rules collapse section
+   headings while scrolling. */
+#sandbox, #features, #how-it-works {
+  overflow: visible;
+}
+
+#sandbox .section-header,
+#features .section-header,
+#how-it-works .section-header {
+  display: block !important;
+  min-height: 1px;
+}
+
+
+/* FINAL TILE STABILITY
+   No CSS animation or transition may continuously rewrite tile transforms.
 */
 .bento-card,
 .process-step {
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform: translateZ(0);
-}
-
-
-/* --- RADAR / DISCLAIMER SCROLL STABILITY ------------------------------- */
-.radar-story-section {
-  position: relative;
-  isolation: isolate;
-  will-change: transform, opacity;
+  animation: none !important;
+  will-change: auto !important;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
 
-.radar-widget,
-.honest-section {
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform: translateZ(0);
-}
-
-.radar-screen,
-.radar-sweep,
-.radar-ring-1,
-.radar-ring-2,
-.radar-blip {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+.bento-card:hover,
+.process-step:hover {
+  /* Hover may change visual appearance, but never introduces a vertical
+     translate that could be mistaken for scroll jitter. */
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .radar-story-section,
-  .radar-widget,
-  .honest-section {
-    transform: none !important;
+  .bento-card,
+  .process-step {
     opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+
+/* FINAL TILE STABILITY — no continuous transform ownership */
+.bento-card,
+.process-step {
+  animation: none !important;
+  will-change: auto !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.bento-card:hover,
+.process-step:hover {
+  /* Hover effects may style the card, but cannot translate it vertically. */
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bento-card,
+  .process-step,
+  .radar-widget,
+  .honest-section,
+  .cta-banner {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

@@ -122,155 +122,178 @@ window.addEventListener('mousemove', (e) => {
   
   if (!cachedHeroGlow) cachedHeroGlow = document.getElementById('heroGlow');
   if (cachedHeroGlow) {
-    cachedHeroGlow.style.setProperty('--mouse-x', `${-targetDx * 35}px`);
-    cachedHeroGlow.style.setProperty('--mouse-y', `${-targetDy * 25}px`);
+    cachedHeroGlow.style.transform = `translateX(calc(-50% + ${-targetDx * 35}px)) translateY(${-targetDy * 25}px)`;
   }
 });
 
 function initParticles() {
   const canvas = document.getElementById('bgCanvas');
+  const hero = document.querySelector('.hero');
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
 
-  let W, H;
-  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
-  resize();
-  window.addEventListener('resize', resize);
+  const ctx = canvas.getContext('2d', { alpha: true });
+  if (!ctx) return;
 
-  // ── Scroll progress (0 = top, 1 = bottom) ─────────────────────────────────
-  let scroll = 0;
-  window.addEventListener('scroll', () => {
-    const max = Math.max(1, document.body.scrollHeight - window.innerHeight);
-    scroll = window.scrollY / max;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (reduce.matches) return;
+
+  let W = 0, H = 0, dpr = 1, raf = 0, last = performance.now();
+
+  const pointer = { x: 0, y: 0, active: false, inHero: false };
+  const nodes = [];
+  const satellites = [];
+  const NODE_COUNT = window.innerWidth < 768 ? 45 : 85;
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 1.6);
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    while (nodes.length > NODE_COUNT) nodes.pop();
+    while (nodes.length < NODE_COUNT) {
+      nodes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - .5) * .10,
+        vy: (Math.random() - .5) * .10,
+        r: .55 + Math.random() * 1.15,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function setPointer(x, y) {
+    pointer.x = x;
+    pointer.y = y;
+    pointer.active = true;
+    const rect = hero?.getBoundingClientRect();
+    pointer.inHero = !!rect && y >= rect.top && y <= rect.bottom;
+    if (pointer.inHero && !satellites.length) {
+      for (let i = 0; i < 7; i++) {
+        const a = (Math.PI * 2 * i) / 7;
+        const r = 48 + (i % 3) * 20;
+        satellites.push({
+          x: x + Math.cos(a) * r,
+          y: y + Math.sin(a) * r,
+          vx: 0, vy: 0,
+          ox: Math.cos(a) * r,
+          oy: Math.sin(a) * r,
+          phase: Math.random() * Math.PI * 2,
+          speed: .001 + Math.random() * .001
+        });
+      }
+    }
+  }
+
+  window.addEventListener('pointermove', e => setPointer(e.clientX, e.clientY), { passive: true });
+  window.addEventListener('pointerleave', () => {
+    pointer.active = false;
+    pointer.inHero = false;
   }, { passive: true });
+  window.addEventListener('resize', resize, { passive: true });
 
-  // ── Stage data (generated once) ───────────────────────────────────────────
-  // Stage 1 – Hero: perspective grid config
-  const GRID_COLS = 14;  // vertical lines spreading from VP
-  const GRID_ROWS = 10;  // horizontal lines receding to VP
-  // Flowing data particles (pre-seeded, animated along grid columns)
-  const FLOW_COUNT = 55;
-  const flowParticles = Array.from({ length: FLOW_COUNT }, (_, i) => ({
-    col: Math.floor(Math.random() * GRID_COLS),  // which column to travel along
-    progress: Math.random(),   // 0=at bottom wide end, 1=at vanishing point
-    speed: 0.0008 + Math.random() * 0.0014,
-    alpha: 0.3 + Math.random() * 0.5,
-    size: 1.2 + Math.random() * 1.8,
-  }));
-
-  // Stage 2 – Bar chart columns
-  const BAR_COUNT = 18;
-  const barHeights = Array.from({ length: BAR_COUNT }, () => 0.15 + Math.random() * 0.55);
-
-  // Stage 3 – Scatter dots (pre-seeded positions)
-  const DOT_COUNT = 38;
-  const scatterDots = Array.from({ length: DOT_COUNT }, () => ({
-    nx: 0.08 + Math.random() * 0.84,   // 0–1 normalised
-    ny: 0.15 + Math.random() * 0.65,
-    r:  0.8 + Math.random() * 1.4,
-  }));
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-  const stageFade = (s, start, peak, end) =>
-    s < start  ? 0 :
-    s < peak   ? clamp((s - start) / (peak - start), 0, 1) :
-    s < end    ? clamp(1 - (s - peak) / (end - peak), 0, 1) : 0;
-
-  let t = 0;
-
-  // ── Draw: faint grid ─────────────────────────────────────────
-  function drawGrid(alpha) {
-    if (alpha < 0.005) return;
-    ctx.lineWidth = 0.5;
-    ctx.strokeStyle = `rgba(255,46,99,${alpha * 0.04})`;
-    for (let y = 0; y < H; y += 64) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-    }
-    for (let x = 0; x < W; x += 80) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-    }
-  }
-
-  // ── Draw: perspective grid + data particle flow (hero stage ONLY) ─────────
-  function drawHeroGrid(alpha) {
-    if (alpha < 0.005) return;
-
-    const vpX = W * 0.5;
-    const vpY = H * 0.42;
-    const baseY = H * 1.05;
-    const baseHalfW = W * 0.95;
-
-    // Vertical perspective lines
-    for (let c = 0; c <= GRID_COLS; c++) {
-      const t_c = c / GRID_COLS;
-      const bx = (vpX - baseHalfW) + t_c * baseHalfW * 2;
-      const lineAlpha = 0.07 * alpha * (1 - Math.abs(t_c - 0.5) * 0.6);
-      ctx.beginPath();
-      ctx.moveTo(bx, baseY);
-      ctx.lineTo(vpX, vpY);
-      ctx.strokeStyle = `rgba(255,46,99,${lineAlpha})`;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-    }
-
-    // Horizontal perspective rows
-    for (let r = 1; r <= GRID_ROWS; r++) {
-      const p = Math.pow(r / GRID_ROWS, 1.8);
-      const y = vpY + (baseY - vpY) * p;
-      const hw = baseHalfW * p;
-      const rowAlpha = 0.055 * alpha * p;
-      ctx.beginPath();
-      ctx.moveTo(vpX - hw, y);
-      ctx.lineTo(vpX + hw, y);
-      ctx.strokeStyle = `rgba(255,46,99,${rowAlpha})`;
-      ctx.lineWidth = 0.7;
-      ctx.stroke();
-    }
-
-    // Animated data particles flowing upward along column lines
-    flowParticles.forEach(fp => {
-      fp.progress += fp.speed;
-      if (fp.progress > 1) fp.progress = 0;
-
-      const p = Math.pow(fp.progress, 1.8);
-      const t_c = fp.col / GRID_COLS;
-      const bx = (vpX - baseHalfW) + t_c * baseHalfW * 2;
-
-      const px = bx + (vpX - bx) * p;
-      const py = baseY + (vpY - baseY) * p;
-
-      const distFade = p < 0.1 ? p / 0.1 : p > 0.82 ? (1 - p) / 0.18 : 1;
-      const dotAlpha = fp.alpha * distFade * alpha * 0.9;
-      const dotSize  = fp.size * (1 - p * 0.7);
-
-      ctx.beginPath();
-      ctx.arc(px, py, dotSize, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,46,99,${dotAlpha})`;
-      ctx.fill();
-    });
-  }
-
-  // ── Animation loop ────────────────────────────────────────────────────────
-  function animate() {
-    t++;
+  function draw(time) {
+    const dt = Math.min(32, time - last);
+    last = time;
     ctx.clearRect(0, 0, W, H);
 
-    // Hero perspective grid ONLY — completely fades out by 22% scroll so Features section stays 100% clean
-    const heroAlpha = stageFade(scroll, 0, 0.01, 0.22);
-    if (heroAlpha > 0) {
-      drawGrid(heroAlpha);
-      drawHeroGrid(heroAlpha);
+    // Quiet ambient network across the entire page viewport.
+    nodes.forEach(n => {
+      n.phase += .0018;
+      n.x += n.vx + Math.sin(n.phase) * .006;
+      n.y += n.vy + Math.cos(n.phase * .7) * .004;
+      if (n.x < -15) n.x = W + 15;
+      if (n.x > W + 15) n.x = -15;
+      if (n.y < -15) n.y = H + 15;
+      if (n.y > H + 15) n.y = -15;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,46,99,.055)';
+      ctx.fill();
+    });
+
+    for (let i=0;i<nodes.length;i++) {
+      for (let j=i+1;j<nodes.length;j++) {
+        const a=nodes[i], b=nodes[j];
+        const dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
+        const max=135;
+        if(d2>max*max) continue;
+        const d=Math.sqrt(d2);
+        ctx.beginPath();
+        ctx.moveTo(a.x,a.y);
+        ctx.lineTo(b.x,b.y);
+        ctx.strokeStyle=`rgba(255,46,99,${(1-d/max)*.035})`;
+        ctx.lineWidth=.55;
+        ctx.stroke();
+      }
     }
 
-    requestAnimationFrame(animate);
+    // Hero-only cursor constellation, rendered INTO the background canvas.
+    if (pointer.active && pointer.inHero) {
+      satellites.forEach((n, i) => {
+        n.phase += n.speed * dt;
+        const tx = pointer.x + n.ox + Math.cos(n.phase) * 7;
+        const ty = pointer.y + n.oy + Math.sin(n.phase * 1.15) * 7;
+        n.vx += (tx-n.x) * .05;
+        n.vy += (ty-n.y) * .05;
+        n.vx *= .86;
+        n.vy *= .86;
+        n.x += n.vx;
+        n.y += n.vy;
+      });
+
+      satellites.forEach((n,i) => {
+        const next=satellites[(i+1)%satellites.length];
+
+        ctx.beginPath();
+        ctx.moveTo(pointer.x,pointer.y);
+        ctx.lineTo(n.x,n.y);
+        ctx.strokeStyle='rgba(255,46,99,.16)';
+        ctx.lineWidth=.7;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(n.x,n.y);
+        ctx.lineTo(next.x,next.y);
+        ctx.strokeStyle='rgba(255,46,99,.085)';
+        ctx.lineWidth=.6;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(n.x,n.y,1.25,0,Math.PI*2);
+        ctx.fillStyle='rgba(255,46,99,.78)';
+        ctx.shadowBlur=10;
+        ctx.shadowColor='rgba(255,46,99,.35)';
+        ctx.fill();
+        ctx.shadowBlur=0;
+      });
+
+      ctx.beginPath();
+      ctx.arc(pointer.x,pointer.y,2,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,.85)';
+      ctx.fill();
+
+      const g=ctx.createRadialGradient(pointer.x,pointer.y,0,pointer.x,pointer.y,145);
+      g.addColorStop(0,'rgba(255,46,99,.055)');
+      g.addColorStop(.45,'rgba(255,46,99,.018)');
+      g.addColorStop(1,'rgba(255,46,99,0)');
+      ctx.fillStyle=g;
+      ctx.beginPath();
+      ctx.arc(pointer.x,pointer.y,145,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    raf=requestAnimationFrame(draw);
   }
 
-  animate();
+  resize();
+  raf=requestAnimationFrame(draw);
 }
-
-
-
 
 function updateCursor() {
   dotX = mouseX;
@@ -335,6 +358,10 @@ function updateClocks() {
 }
 
 // --- INITIALIZATION ---
+window.scrollTo(0, 0);
+document.documentElement.scrollTop = 0;
+document.body.scrollTop = 0;
+
 window.addEventListener('DOMContentLoaded', () => {
   // Start Custom Cursor loop
   updateCursor();
@@ -372,20 +399,26 @@ window.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.blur-reveal').forEach(el => blurObserver.observe(el));
 
-  // Initial hero entrance. After the first paint, GSAP takes over all
-  // scroll-linked transforms so CSS and JS never fight over the same property.
+  // Hero first paint: content is visible immediately. GSAP only adds a
+  // tiny entrance from the already-visible state; it never hides the hero.
   requestAnimationFrame(() => {
-    document.querySelectorAll('.animate-slide').forEach((el, index) => {
+    const intro = [
+      document.querySelector('.hero > .animate-slide'),
+      document.querySelector('.hero-actions'),
+      document.querySelector('.hero-meta'),
+      document.querySelector('#heroProductPreview')
+    ].filter(Boolean);
+
+    intro.forEach((el, index) => {
       gsap.fromTo(el,
-        { y: 28, opacity: 0, filter: 'blur(6px)' },
+        { y: 14, opacity: 1 },
         {
           y: 0,
           opacity: 1,
-          filter: 'blur(0px)',
-          duration: 1.05,
-          delay: Math.min(index * 0.06, 0.35),
-          ease: 'power4.out',
-          clearProps: 'filter'
+          duration: 0.8,
+          delay: index * 0.08,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity'
         }
       );
     });
@@ -485,70 +518,77 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // ── MARQUEE: CSS owns the continuous loop ─────────────────────────────────
-    // Do not animate transform here with GSAP; the CSS marquee keyframe already
-    // owns transform and mixing the two causes visible snapping.
+    // ── MARQUEE: subtly reacts to scroll velocity ─────────────────────────────
+    const marquee = document.querySelector('.marquee-track');
+    if (marquee) {
+      gsap.to(marquee, {
+        xPercent: -8,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.marquee-container',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 2
+        }
+      });
+    }
 
-    // ── SANDBOX: ONE continuous cinematic timeline ─────────────────────────────
-    // Previously three independent ScrollTriggers all wrote to the same
-    // transform/opacity properties (y, scale, rotateY, opacity). Their ranges
-    // overlapped, so the browser could visibly "snap" an element backwards and
-    // forwards while scrolling. A single timeline owns these properties now.
+    // ── SANDBOX: cinematic 3D entrance + slight scroll depth ──────────────────
     const productMockup = document.querySelector('#product');
-
     if (productMockup) {
       gsap.set(productMockup, {
         transformPerspective: 1200,
-        transformOrigin: '50% 50%',
-        force3D: true
+        transformOrigin: '50% 50%'
       });
 
-      const productTl = gsap.timeline({
+      gsap.fromTo(productMockup,
+        {
+          rotateX: 7,
+          rotateY: -1.5,
+          scale: 0.88,
+          y: 90,
+          opacity: 0
+        },
+        {
+          rotateX: 0,
+          rotateY: 0,
+          scale: 1,
+          y: 0,
+          opacity: 1,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: productMockup,
+            start: 'top 92%',
+            end: 'top 42%',
+            scrub: 1.25
+          }
+        }
+      );
+
+      gsap.to(productMockup, {
+        y: -45,
+        rotateY: 1.2,
+        ease: 'none',
         scrollTrigger: {
           trigger: productMockup,
-          start: 'top 92%',
-          end: 'bottom 18%',
-          scrub: 1.25,
-          invalidateOnRefresh: true
+          start: 'top 35%',
+          end: 'bottom top',
+          scrub: 1.5
         }
       });
 
-      productTl
-        .fromTo(productMockup,
-          {
-            rotateX: 7,
-            rotateY: -1.5,
-            scale: 0.88,
-            y: 90,
-            opacity: 0
-          },
-          {
-            rotateX: 0,
-            rotateY: 0,
-            scale: 1,
-            y: 0,
-            opacity: 1,
-            duration: 0.34,
-            ease: 'power3.out'
-          },
-          0
-        )
-        .to(productMockup, {
-          y: -38,
-          rotateY: 1,
-          scale: 0.985,
-          opacity: 1,
-          duration: 0.38,
-          ease: 'none'
-        })
-        .to(productMockup, {
-          y: -58,
-          rotateY: 0,
-          scale: 0.965,
-          opacity: 0.92,
-          duration: 0.28,
-          ease: 'none'
-        });
+      // A soft scale-down as the next section takes over.
+      gsap.to(productMockup, {
+        scale: 0.96,
+        opacity: 0.72,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: productMockup,
+          start: 'bottom 75%',
+          end: 'bottom 20%',
+          scrub: 1
+        }
+      });
     }
 
     // ── STATS: numbers/cards float into place ─────────────────────────────────
@@ -587,189 +627,158 @@ window.addEventListener('DOMContentLoaded', () => {
       );
     }
 
-    // ── SECTION HEADERS: editorial reveal ─────────────────────────────────────
+    // ── SECTION HEADERS: STABLE ONE-SHOT ENTRANCE ───────────────────────────
     document.querySelectorAll('.section-header').forEach((headerEl) => {
       const eyebrow = headerEl.querySelector('.subheading');
       const heading = headerEl.querySelector('h2');
       const paragraph = headerEl.querySelector('p');
+      const pieces = [eyebrow, heading, paragraph].filter(Boolean);
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: headerEl,
-          start: 'top 84%',
-          end: 'top 45%',
-          scrub: 1
-        }
+      gsap.killTweensOf(pieces);
+
+      gsap.set(pieces, {
+        y: 0,
+        opacity: 1,
+        filter: 'none',
+        clearProps: 'transform,opacity,filter'
       });
 
-      if (eyebrow) {
-        tl.fromTo(eyebrow,
-          { y: 24, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.35, ease: 'power3.out' }, 0);
-      }
-      if (heading) {
-        tl.fromTo(heading,
-          { y: 55, opacity: 0, filter: 'blur(8px)' },
-          { y: 0, opacity: 1, filter: 'blur(0px)', duration: 0.55, ease: 'power4.out' }, 0.05);
-      }
-      if (paragraph) {
-        tl.fromTo(paragraph,
-          { y: 35, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' }, 0.16);
-      }
-    });
-
-    // ── FEATURES / BENTO: ONE OWNER PER CARD ──────────────────────────────────
-    // Each card previously had two ScrollTriggers writing to `y`: one for the
-    // entrance and one for the passing parallax. Their ranges overlapped and
-    // could make cards visibly jump/disappear. A single timeline now owns all
-    // transform/opacity values for each card.
-    const bentoCards = document.querySelectorAll('.bento-card');
-
-    if (bentoCards.length) {
-      bentoCards.forEach((card, index) => {
-        const cardTl = gsap.timeline({
+      gsap.fromTo(pieces,
+        {
+          y: 20,
+          opacity: 0.001
+        },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.68,
+          stagger: 0.055,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity,filter',
           scrollTrigger: {
-            trigger: card,
-            start: 'top 90%',
-            end: 'bottom 18%',
-            scrub: 1.2,
+            trigger: headerEl,
+            start: 'top 88%',
+            toggleActions: 'play none none none',
+            once: true,
             invalidateOnRefresh: true
           }
-        });
+        }
+      );
+    });
 
-        cardTl
-          .fromTo(card,
-            {
-              y: 75 + (index % 2) * 20,
-              opacity: 0,
-              scale: 0.96,
-              rotateX: 3
-            },
-            {
-              y: 0,
-              opacity: 1,
-              scale: 1,
-              rotateX: 0,
-              duration: 0.45,
-              ease: 'power3.out'
-            },
-            0
-          )
-          .to(card, {
-            y: -22,
-            scale: 0.985,
-            duration: 0.55,
-            ease: 'none'
-          });
+    // ── BENTO GRID: STABLE ONE-SHOT ENTRANCE ─────────────────────────────────
+    // No scrub. No parallax. Once a tile enters, its position is fixed.
+    document.querySelectorAll('.bento-card').forEach((card, index) => {
+      gsap.killTweensOf(card);
+
+      gsap.set(card, {
+        y: 0,
+        x: 0,
+        scale: 1,
+        rotation: 0,
+        rotateX: 0,
+        rotateY: 0,
+        opacity: 1
       });
-    }
 
-    // ── PROCESS / HOW IT WORKS: ONE CONTINUOUS STEP MOTION ─────────────────────
-    // Keep each step's movement in one ScrollTrigger. The active-state trigger
-    // below only toggles a class; it never changes transform/opacity.
-    const steps = document.querySelectorAll('.process-step');
+      gsap.fromTo(card,
+        { y: 30, opacity: 0.001, scale: 0.985 },
+        {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.72,
+          delay: index * 0.06,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity',
+          scrollTrigger: {
+            trigger: card,
+            start: 'top 88%',
+            toggleActions: 'play none none none',
+            once: true,
+            invalidateOnRefresh: true
+          }
+        }
+      );
+    });
 
-    if (steps.length) {
-      steps.forEach((step) => {
-        const stepTl = gsap.timeline({
+    // ── PROCESS: STABLE ONE-SHOT ENTRANCE ───────────────────────────────────
+    document.querySelectorAll('.process-step').forEach((step, index) => {
+      gsap.killTweensOf(step);
+
+      gsap.set(step, {
+        y: 0,
+        x: 0,
+        scale: 1,
+        rotation: 0,
+        rotateX: 0,
+        rotateY: 0,
+        opacity: 1
+      });
+
+      gsap.fromTo(step,
+        { y: 28, opacity: 0.001, scale: 0.988 },
+        {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.68,
+          delay: index * 0.07,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity',
           scrollTrigger: {
             trigger: step,
             start: 'top 88%',
-            end: 'bottom 18%',
-            scrub: 1.15,
+            toggleActions: 'play none none none',
+            once: true,
             invalidateOnRefresh: true
           }
-        });
+        }
+      );
 
-        stepTl
-          .fromTo(step,
-            {
-              y: 55,
-              opacity: 0,
-              scale: 0.97
-            },
-            {
-              y: 0,
-              opacity: 1,
-              scale: 1,
-              duration: 0.42,
-              ease: 'power3.out'
-            },
-            0
-          )
-          .to(step, {
-            y: -18,
-            scale: 0.99,
-            duration: 0.58,
-            ease: 'none'
-          });
-
-        ScrollTrigger.create({
-          trigger: step,
-          start: 'top 62%',
-          end: 'bottom 38%',
-          invalidateOnRefresh: true,
-          onEnter: () => step.classList.add('is-active'),
-          onLeave: () => step.classList.remove('is-active'),
-          onEnterBack: () => step.classList.add('is-active'),
-          onLeaveBack: () => step.classList.remove('is-active')
-        });
+      // Only the visual active state changes; it never moves the tile.
+      ScrollTrigger.create({
+        trigger: step,
+        start: 'top 62%',
+        end: 'bottom 38%',
+        invalidateOnRefresh: true,
+        onEnter: () => step.classList.add('is-active'),
+        onLeave: () => step.classList.remove('is-active'),
+        onEnterBack: () => step.classList.add('is-active'),
+        onLeaveBack: () => step.classList.remove('is-active')
       });
-    }
+    });
 
-    // ── LIVE RADAR + DISCLAIMER: ONE STABLE STORY TIMELINE ─────────────────────
-    // The entire section used to have an animate-slide wrapper while the radar
-    // and disclaimer also had their own ScrollTriggers. That meant the parent
-    // could change opacity/transform while its children were being moved.
-    // The parent now owns the entrance only; the two panels own a small amount
-    // of internal depth. No overlapping y/opacity ownership.
-    const radarStory = document.querySelector('.radar-story-section');
+    // ── RADAR / FINAL STORY ─────────────────────────────────────────────────
+    // Keep this section stable as well. No scroll-linked y animation.
     const radarWidget = document.querySelector('.radar-widget');
     const honestSection = document.querySelector('.honest-section');
 
-    if (radarStory) {
-      const storyTl = gsap.timeline({
-        scrollTrigger: {
-          trigger: radarStory,
-          start: 'top 88%',
-          end: 'top 48%',
-          scrub: 1.15,
-          invalidateOnRefresh: true
-        }
+    if (radarWidget) {
+      gsap.killTweensOf(radarWidget);
+
+      gsap.set(radarWidget, {
+        y: 0,
+        x: 0,
+        scale: 1,
+        rotation: 0,
+        opacity: 1
       });
 
-      storyTl.fromTo(radarStory,
-        {
-          y: 48,
-          opacity: 0.2
-        },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 1,
-          ease: 'power3.out'
-        }
-      );
-    }
-
-    if (radarWidget) {
       gsap.fromTo(radarWidget,
-        {
-          y: 24,
-          scale: 0.985,
-          opacity: 0.92
-        },
+        { y: 28, opacity: 0.001, scale: 0.988 },
         {
           y: 0,
-          scale: 1,
           opacity: 1,
-          ease: 'none',
+          scale: 1,
+          duration: 0.72,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity',
           scrollTrigger: {
-            trigger: radarStory || radarWidget,
-            start: 'top 76%',
-            end: 'top 42%',
-            scrub: 1.2,
+            trigger: radarWidget,
+            start: 'top 88%',
+            toggleActions: 'play none none none',
+            once: true,
             invalidateOnRefresh: true
           }
         }
@@ -777,63 +786,68 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     if (honestSection) {
+      gsap.killTweensOf(honestSection);
+
+      gsap.set(honestSection, {
+        x: 0,
+        y: 0,
+        opacity: 1
+      });
+
       gsap.fromTo(honestSection,
-        {
-          x: 26,
-          opacity: 0.88
-        },
+        { x: 24, opacity: 0.001 },
         {
           x: 0,
           opacity: 1,
-          ease: 'none',
+          duration: 0.72,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity',
           scrollTrigger: {
-            trigger: radarStory || honestSection,
-            start: 'top 72%',
-            end: 'top 42%',
-            scrub: 1.2,
+            trigger: honestSection,
+            start: 'top 88%',
+            toggleActions: 'play none none none',
+            once: true,
             invalidateOnRefresh: true
           }
         }
       );
     }
 
-    // ── CTA: slower, larger final reveal ──────────────────────────────────────
+    // ── CTA: STABLE ONE-SHOT ENTRANCE ────────────────────────────────────────
     const cta = document.querySelector('.cta-banner');
+
     if (cta) {
+      gsap.killTweensOf(cta);
+
+      gsap.set(cta, {
+        y: 0,
+        x: 0,
+        scale: 1,
+        opacity: 1
+      });
+
       gsap.fromTo(cta,
-        { y: 80, opacity: 0, scale: 0.96 },
+        { y: 34, opacity: 0.001, scale: 0.985 },
         {
           y: 0,
           opacity: 1,
           scale: 1,
-          ease: 'power4.out',
+          duration: 0.78,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity',
           scrollTrigger: {
             trigger: cta,
             start: 'top 88%',
-            end: 'top 48%',
-            scrub: 1.15
+            toggleActions: 'play none none none',
+            once: true,
+            invalidateOnRefresh: true
           }
         }
       );
-
-      gsap.to(cta, {
-        y: -30,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: cta,
-          start: 'top 40%',
-          end: 'bottom top',
-          scrub: 1.5
-        }
-      });
     }
 
-    // Measure after fonts/layout have settled. This prevents triggers from
-    // being calculated at one height and then jumping when web fonts finish.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => ScrollTrigger.refresh());
-    });
-    window.addEventListener('load', () => ScrollTrigger.refresh(), { once: true });
+    // Make sure ScrollTrigger measures the final layout.
+    requestAnimationFrame(() => ScrollTrigger.refresh());
   }
 });
 
@@ -1380,3 +1394,12 @@ function triggerKonamiEgg() {
   currentDatasetKey = 'redgevity';
   startSimulation();
 }
+
+
+window.addEventListener('load', () => {
+  if (typeof ScrollTrigger !== 'undefined') {
+    requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
+  }
+});
